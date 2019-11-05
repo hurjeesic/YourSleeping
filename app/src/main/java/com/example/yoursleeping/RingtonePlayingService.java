@@ -46,7 +46,7 @@ public class RingtonePlayingService extends Service {
 
             startForeground(1, notification);
         }
-        else{
+        else {
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, "default");
 
             builder.setSmallIcon(R.mipmap.ic_launcher);
