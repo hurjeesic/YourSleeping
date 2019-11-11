@@ -1,15 +1,20 @@
 apply plugin: 'com.android.application'
+apply plugin: "com.github.spotbugs"
+apply plugin: "pmd"
+
+def ABORT_ON_CHECK_FAILURE = false
 
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.example.yoursleeping"
-        minSdkVersion 23
-        targetSdkVersion 29
+        minSdkVersion 19
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        vectorDrawables.useSupportLibrary = true
     }
     buildTypes {
         release {
@@ -17,9 +22,36 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        // for KitKat
+        sourceCompatibility JavaVersion.VERSION_1_7
+        targetCompatibility JavaVersion.VERSION_1_7
+    }
+
+    lintOptions {
+        abortOnError ABORT_ON_CHECK_FAILURE
+        lintConfig file("${project.rootDir}/config/lint/lint.xml")
+// If true, generate an HTML report (with issue explanations, sourcecode, etc)
+        htmlReport true
+// Optional path to report (default will be lint-results.html in the builddir)
+        htmlOutput file("$project.buildDir/reports/lint/lint.html")
+    }
+
+    testOptions {
+        unitTests {
+            returnDefaultValues = true
+            includeAndroidResources = true
+        }
+    }
 }
+
+pmd {
+    toolVersion = "5.5.5"
+}
+
+
 repositories {
-    maven { url 'https://jitpack.io' }
+//    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -32,4 +64,112 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+
+    // Gadgetbridge에서 가져온 lib
+    testImplementation "org.mockito:mockito-core:1.10.19"
+    testImplementation "org.robolectric:robolectric:4.2.1"
+    testImplementation "com.google.code.gson:gson:2.8.5"
+
+    implementation "androidx.preference:preference:1.1.0"
+    implementation "androidx.cardview:cardview:1.0.0"
+    implementation "androidx.recyclerview:recyclerview:1.0.0"
+    implementation "androidx.legacy:legacy-support-v4:1.0.0"
+    implementation "androidx.gridlayout:gridlayout:1.0.0"
+    implementation "com.google.android.material:material:1.0.0"
+    implementation "androidx.palette:palette:1.0.0"
+    implementation("com.github.tony19:logback-android-classic:1.1.1-6") {
+        exclude group: "com.google.android", module: "android"
+    }
+    implementation "org.slf4j:slf4j-api:1.7.12"
+    implementation "com.github.PhilJay:MPAndroidChart:v3.1.0"
+    implementation "com.github.pfichtner:durationformatter:0.1.1"
+    implementation "de.cketti.library.changelog:ckchangelog:1.2.2"
+    implementation "net.e175.klaus:solarpositioning:0.0.9"
+    // use pristine greendao instead of our custom version, since our custom jitpack-packaged
+    // version contains way too much and our custom patches are in the generator only.
+    implementation "org.greenrobot:greendao:2.2.1"
+    implementation "org.apache.commons:commons-lang3:3.7"
+    implementation "org.cyanogenmod:platform.sdk:6.0"
+    implementation 'com.jaredrummler:colorpicker:1.0.2'
+//    implementation project(":DaoCore")
+    implementation 'com.github.wax911:android-emojify:0.1.7'
+}
+
+preBuild.dependsOn(":GBDaoGenerator:genSources")
+
+gradle.beforeProject {
+    preBuild.dependsOn(":GBDaoGenerator:genSources")
+}
+
+check.dependsOn "spotbugsMain", "pmd", "lint"
+
+task pmd(type: Pmd) {
+    ruleSetFiles = files("${project.rootDir}/config/pmd/pmd-ruleset.xml")
+    ignoreFailures = !ABORT_ON_CHECK_FAILURE
+    ruleSets = [
+            "java-android",
+            "java-basic",
+            "java-braces",
+            "java-clone",
+            "java-codesize",
+            "java-controversial",
+            "java-coupling",
+            "java-design",
+            "java-empty",
+            "java-finalizers",
+            "java-imports",
+            "java-junit",
+            "java-optimizations",
+            "java-strictexception",
+            "java-strings",
+            "java-sunsecure",
+            "java-typeresolution",
+            "java-unnecessary",
+            "java-unusedcode"
+    ]
+
+    source "src"
+    include "**/*.java"
+    exclude "**/gen/**"
+
+    reports {
+        xml.enabled = false
+        html.enabled = true
+        xml {
+            destination file("$project.buildDir/reports/pmd/pmd.xml")
+        }
+        html {
+            destination file("$project.buildDir/reports/pmd/pmd.html")
+        }
+    }
+}
+
+// this is just for spotbugs to let the plugin create the task
+sourceSets {
+    main {
+        java.srcDirs = []
+    }
+}
+
+spotbugs {
+    toolVersion = "3.1.12"
+    ignoreFailures = !ABORT_ON_CHECK_FAILURE
+    effort = "default"
+    reportLevel = "medium"
+}
+
+tasks.withType(com.github.spotbugs.SpotBugsTask) {
+    source = fileTree('src/main/java')
+    classes = files("${project.rootDir}/app/build/intermediates/javac/debug/classes")
+    excludeFilter = new File("${project.rootDir}/config/findbugs/findbugs-filter.xml")
+    reports {
+        xml.enabled = false
+        html.enabled = true
+        xml {
+            destination file ("$project.buildDir/reports/spotbugs/spotbugs-output.xml")
+        }
+        html {
+            destination file ("$project.buildDir/reports/spotbugs/spotbugs-output.html")
+        }
+    }
 }
