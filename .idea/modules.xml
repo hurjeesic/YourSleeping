@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/GBDaoGenerator/GBDaoGenerator.iml" filepath="$PROJECT_DIR$/GBDaoGenerator/GBDaoGenerator.iml" />
       <module fileurl="file://$PROJECT_DIR$/YourSleeping.iml" filepath="$PROJECT_DIR$/YourSleeping.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>

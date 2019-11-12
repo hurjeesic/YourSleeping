@@ -20,6 +20,8 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
+import nodomain.freeyourgadget.gadgetbridge.R;
+
 
 public class FirstFragment extends Fragment {
     // Store instance variables
