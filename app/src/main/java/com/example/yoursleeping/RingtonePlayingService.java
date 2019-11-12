@@ -13,6 +13,8 @@ import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import nodomain.freeyourgadget.gadgetbridge.R;
+
 public class RingtonePlayingService extends Service {
 
     MediaPlayer mediaPlayer;

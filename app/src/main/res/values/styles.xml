@@ -1,11 +1,67 @@
-<resources>
-
-    <!-- Base application theme. -->
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="textColorPrimary">@color/primarytext_light</item>
+        <item name="textColorSecondary">@color/secondarytext</item>
+        <item name="textColorTertiary">@color/tertiarytext_light</item>
+
+        <!-- base color -->
+<!--        <item name="colorPrimary">@color/colorPrimary</item>-->
+<!--        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>-->
+<!--        <item name="colorAccent">@color/colorAccent</item>-->
+
+        <item name="colorPrimary">@color/primary_light</item>
+        <item name="colorPrimaryDark">@color/primarydark_light</item>
+        <item name="colorAccent">@color/accent</item>
+
+        <item name="android:buttonStyle">@style/Widget.AppCompat.Button.Colored</item>
+        <item name="buttonStyle">@style/Widget.AppCompat.Button.Colored</item>
+
+        <item name="chart_deep_sleep">@color/chart_deep_sleep_light</item>
+        <item name="chart_light_sleep">@color/chart_light_sleep_light</item>
+        <item name="chart_activity">@color/chart_activity_light</item>
+        <item name="chart_not_worn">@color/chart_not_worn_light</item>
     </style>
 
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <!-- dark theme -->
+    <style name="AppThemeDark" parent="Theme.AppCompat">
+        <item name="textColorPrimary">@color/primarytext_dark</item>
+        <item name="textColorSecondary">@color/secondarytext</item>
+        <item name="textColorTertiary">@color/tertiarytext_dark</item>
+
+        <item name="colorPrimary">@color/primary_dark</item>
+        <item name="colorPrimaryDark">@color/primarydark_dark</item>
+        <item name="colorAccent">@color/accent</item>
+
+        <item name="android:buttonStyle">@style/ButtonDark</item>
+        <item name="buttonStyle">@style/ButtonDark</item>
+
+        <item name="chart_deep_sleep">@color/chart_deep_sleep_dark</item>
+        <item name="chart_light_sleep">@color/chart_light_sleep_dark</item>
+        <item name="chart_activity">@color/chart_activity_dark</item>
+        <item name="chart_not_worn">@color/chart_not_worn_dark</item>
+    </style>
+
+    <style name="ButtonDark" parent="Widget.AppCompat.Button.Colored">
+        <item name="android:textColor">@color/btn_dark</item>
+    </style>
+
+    <style name="AppThemeDark.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="SplashTheme" parent="AppTheme.NoActionBar">
+        <item tools:targetApi="21" name="android:statusBarColor">@color/primarydark_dark</item>
+        <item tools:targetApi="21" name="android:navigationBarColor">@color/primarydark_dark</item>
+        <item name="android:windowBackground">@drawable/splash</item>
+    </style>
 </resources>

@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Calendar;
 
+import nodomain.freeyourgadget.gadgetbridge.R;
+
 
 public class SecondFragment  extends Fragment {
     private String TAG = "sleep";
