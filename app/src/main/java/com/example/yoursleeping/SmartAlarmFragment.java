@@ -93,7 +93,29 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                     String dateStr = DateTimeUtils.formatDateTime(DateTimeUtils.parseTimeStamp(sample.getTimestamp()));
                     Log.d("miband", "time = " + dateStr + ", state = " + sample.getKind());
                     if (sample.getKind() == ActivityKind.TYPE_SLEEP) {
-                        // 전송 코드 추가
+                        Response.Listener<String> responseListener = new Response.Listener<String>() {
+                            @Override
+                            public void onResponse(String response) {
+                                try {
+                                    JSONObject jsonResponse = new JSONObject(response);
+                                    boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
+                                    if (success) {
+                                        Log.d("miband", "Success sending");
+                                    }
+                                    else {
+                                        Log.d("miband", "Fail sending");
+                                    }
+                                }
+                                catch (Exception e)  {
+                                    e.printStackTrace();
+                                }
+                            }
+                        };
+
+                        SendingSampleRequest request = new SendingSampleRequest(Integer.toString(sample.getTimestamp()),
+                                Integer.toString(sample.getHeartRate()), Integer.toString(sample.getKind()),responseListener);
+                        RequestQueue queue = Volley.newRequestQueue(getContext());
+                        queue.add(request);
                     }
                 }
                 LocalBroadcastManager.getInstance(getContext()).sendBroadcast(new Intent(DATE_PREV_DAY));
