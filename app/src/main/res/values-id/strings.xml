@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources><string name="app_name">Gadgetbridge</string>
-    <string name="title_activity_controlcenter">Gadgetbridge</string>
+<resources><string name="app_name">YourSleeping</string>
+    <string name="title_activity_controlcenter">YourSleeping</string>
     <string name="action_settings">Pengaturan</string>
     <string name="action_quit">Keluar</string>
     <string name="action_donate">Donasi</string>

@@ -43,6 +43,9 @@ import androidx.fragment.app.FragmentStatePagerAdapter;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import androidx.viewpager.widget.ViewPager;
+
+import com.example.yoursleeping.SmartAlarmFragment;
+
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
 import nodomain.freeyourgadget.gadgetbridge.activities.AbstractFragmentPagerAdapter;
@@ -364,6 +367,8 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
                     return new SpeedZonesFragment();
                 case 5:
                     return new LiveActivityFragment();
+                case 6:
+                    return new SmartAlarmFragment();
             }
             return null;
         }
@@ -373,9 +378,9 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
             // Show 5 or 6 total pages.
             DeviceCoordinator coordinator = DeviceHelper.getInstance().getCoordinator(mGBDevice);
             if (coordinator.supportsRealtimeData()) {
-                return 6;
+                return 7;
             }
-            return 5;
+            return 6;
         }
 
         private String getSleepTitle() {
@@ -411,6 +416,8 @@ public class ChartsActivity extends AbstractGBFragmentActivity implements Charts
                     return getString(R.string.stats_title);
                 case 5:
                     return getString(R.string.liveactivity_live_activity);
+                case 6:
+                    return "Smart Alarm";
             }
             return super.getPageTitle(position);
         }

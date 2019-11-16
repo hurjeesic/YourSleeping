@@ -39,8 +39,8 @@
     <string name="title_activity_calblacklist">Svartelistede kalendere</string>
     <string name="title_activity_fw_app_insaller">Fastvare-/program-installerer</string>
     <string name="fw_upgrade_notice">Du er i ferd med å installere %s.</string>
-    <string name="app_name">Gadgetbru</string>
-    <string name="title_activity_controlcenter">Gadgetbru</string>
+    <string name="app_name">YourSleeping</string>
+    <string name="title_activity_controlcenter">YourSleeping</string>
     <string name="controlcenter_delete_device_dialogmessage">Dette vil slette enheten og all tilknyttet data!</string>
     <string name="fw_upgrade_notice_amazfitbip">Du er i ferd med å installere %s-fastvaren på din Amazfit Bip.
 \n
