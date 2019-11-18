@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -62,6 +63,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
     private static boolean bUpdate = false;
     private static int initCount = 0, Count = 0;
     private static long presentTime = 0;
+    private static List<SendingData> dataLst = new ArrayList<>();
     protected static final Logger LOG = LoggerFactory.getLogger(ActivitySleepChartFragment.class);
 
     private LineChart mActivityChart;
@@ -72,6 +74,17 @@ public class SmartAlarmFragment extends AbstractChartFragment {
     private int mSmartAlarmTo = -1;
     private int mTimestampFrom = -1;
     private int mSmartAlarmGoneOff = -1;
+
+    class SendingData {
+        public int date, time, heartRate, state;
+
+        public SendingData(int date, int time, int heartRate, int state) {
+            this.date = date;
+            this.time = time;
+            this.heartRate = heartRate;
+            this.state = state;
+        }
+    }
 
     @Override
     protected ChartsData refreshInBackground(ChartsHost chartsHost, DBHandler db, GBDevice device) {
@@ -89,10 +102,63 @@ public class SmartAlarmFragment extends AbstractChartFragment {
             String DATE_NEXT_DAY = ChartsActivity.class.getName().concat(".date_next_day");
             //54540 - timestamp에서 하루 차이
             if (samples.size() > 0 && presentTime - samples.get(0).getTimestamp() < 54540 * 60) {
-                for (ActivitySample sample : samples) {
-                    String dateStr = DateTimeUtils.formatDateTime(DateTimeUtils.parseTimeStamp(sample.getTimestamp()));
-                    Log.d("miband", "time = " + dateStr + ", state = " + sample.getKind());
-                    if (sample.getKind() == ActivityKind.TYPE_SLEEP) {
+                for (int i = samples.size() - 1; i >= 0; i--) {
+                    String[] dateInfo = DateTimeUtils.formatDateTime(DateTimeUtils.parseTimeStamp(samples.get(i).getTimestamp())).split(" ");
+                    int year = Calendar.getInstance().get(Calendar.YEAR);
+                    if (Integer.parseInt(dateInfo[0].substring(0, dateInfo[0].length() - 1)) > Calendar.getInstance().get(Calendar.MONTH) + 1) {
+                        year--;
+                    }
+                    int date = Integer.parseInt(year + dateInfo[0].substring(0, dateInfo[0].length() - 1) + dateInfo[1].substring(0, dateInfo[1].length() - 1));
+                    String[] timeAry = dateInfo[3].split(":");
+                    int hour = Integer.parseInt(timeAry[0]), minute = Integer.parseInt(timeAry[1]);
+                    if (Integer.parseInt(timeAry[0]) == 12) {
+                        if (dateInfo[2].equals("오전")) {
+                            hour = 0;
+                        }
+                    }
+                    else if (dateInfo[2].equals("오후")) {
+                        hour += 12;
+                    }
+                    int time = hour * 60 + minute;
+                    if (dataLst.size() > 0 && date == dataLst.get(dataLst.size() - 1).date && time == dataLst.get(dataLst.size() - 1).time) {
+                        continue;
+                    }
+                    else {
+                        dataLst.add(new SendingData(date, time, samples.get(i).getHeartRate(), samples.get(i).getKind()));
+                    }
+                }
+                LocalBroadcastManager.getInstance(getContext()).sendBroadcast(new Intent(DATE_PREV_DAY));
+            }
+            else {
+                bUpdate = true;
+                LocalBroadcastManager.getInstance(getContext()).sendBroadcast(new Intent(DATE_NEXT_DAY));
+
+                Collections.sort(dataLst, new Comparator<SendingData>() {
+                    @Override
+                    public int compare(SendingData data1, SendingData data2) {
+                        if (data1.date == data2.date) {
+                            if (data1.time == data2.time) {
+                                return 0;
+                            }
+                            else if (data1.time > data2.time) {
+                                return -1;
+                            }
+                            else {
+                                return 1;
+                            }
+                        }
+                        else if (data1.date > data2.date) {
+                            return -1;
+                        }
+                        else {
+                            return 1;
+                        }
+                    }
+                });
+
+                for (SendingData data : dataLst) {
+                    Log.d(TAG, "time = " + data.date + " - " + data.time + ", state = " + data.state);
+                    if (data.state == ActivityKind.TYPE_SLEEP) {
                         Response.Listener<String> responseListener = new Response.Listener<String>() {
                             @Override
                             public void onResponse(String response) {
@@ -112,17 +178,11 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                             }
                         };
 
-                        SendingSampleRequest request = new SendingSampleRequest(Integer.toString(sample.getTimestamp()),
-                                Integer.toString(sample.getHeartRate()), Integer.toString(sample.getKind()),responseListener);
+                        SendingSampleRequest request = new SendingSampleRequest(data.date, data.time, data.heartRate, data.state,responseListener);
                         RequestQueue queue = Volley.newRequestQueue(getContext());
                         queue.add(request);
                     }
                 }
-                LocalBroadcastManager.getInstance(getContext()).sendBroadcast(new Intent(DATE_PREV_DAY));
-            }
-            else {
-                bUpdate = true;
-                LocalBroadcastManager.getInstance(getContext()).sendBroadcast(new Intent(DATE_NEXT_DAY));
             }
         }
         else if (initCount < 60){
