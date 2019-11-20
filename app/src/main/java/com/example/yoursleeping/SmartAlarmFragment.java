@@ -3,7 +3,6 @@ package com.example.yoursleeping;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,6 +14,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.toolbox.Volley;
+import com.example.yoursleeping.support.DeletedSampleRequest;
 import com.example.yoursleeping.support.SendingSampleRequest;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.Chart;
@@ -70,11 +70,6 @@ public class SmartAlarmFragment extends AbstractChartFragment {
     private PieChart mSleepAmountChart;
     private TextView mSleepchartInfo;
 
-    private int mSmartAlarmFrom = -1;
-    private int mSmartAlarmTo = -1;
-    private int mTimestampFrom = -1;
-    private int mSmartAlarmGoneOff = -1;
-
     class SendingData {
         public int date, time, heartRate, state;
 
@@ -101,7 +96,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
             String DATE_PREV_DAY = ChartsActivity.class.getName().concat(".date_prev_day");
             String DATE_NEXT_DAY = ChartsActivity.class.getName().concat(".date_next_day");
             //54540 - timestamp에서 하루 차이
-            if (samples.size() > 0 && presentTime - samples.get(0).getTimestamp() < 54540 * 60) {
+            if (samples.size() > 0 && presentTime - samples.get(0).getTimestamp() < 54540 * 2) {
                 for (int i = samples.size() - 1; i >= 0; i--) {
                     String[] dateInfo = DateTimeUtils.formatDateTime(DateTimeUtils.parseTimeStamp(samples.get(i).getTimestamp())).split(" ");
                     int year = Calendar.getInstance().get(Calendar.YEAR);
@@ -156,33 +151,53 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                     }
                 });
 
-                for (SendingData data : dataLst) {
-                    Log.d(TAG, "time = " + data.date + " - " + data.time + ", state = " + data.state);
-                    if (data.state == ActivityKind.TYPE_SLEEP) {
-                        Response.Listener<String> responseListener = new Response.Listener<String>() {
-                            @Override
-                            public void onResponse(String response) {
-                                try {
-                                    JSONObject jsonResponse = new JSONObject(response);
-                                    boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
-                                    if (success) {
-                                        Log.d("miband", "Success sending");
+                final RequestQueue queue = Volley.newRequestQueue(getActivity());
+                Response.Listener<String> deleteResponseListener = new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
+                            if (success) {
+                                for (int i = 0; i < dataLst.size(); i++) {
+                                    final SendingData tempData = dataLst.get(i);
+                                    if (tempData.state == ActivityKind.TYPE_DEEP_SLEEP || tempData.state == ActivityKind.TYPE_LIGHT_SLEEP) {
+                                        Response.Listener<String> responseListener = new Response.Listener<String>() {
+                                            @Override
+                                            public void onResponse(String response) {
+                                                try {
+                                                    JSONObject jsonResponse = new JSONObject(response);
+                                                    boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
+                                                    if (success) {
+                                                        Log.d(TAG, "time = " + tempData.date + " - " + tempData.time + ", state = " + tempData.state);
+                                                    }
+                                                    else {
+                                                        Log.d(TAG, "Fail sending");
+                                                    }
+                                                }
+                                                catch (Exception e)  {
+                                                    e.printStackTrace();
+                                                }
+                                            }
+                                        };
+
+                                        SendingSampleRequest request = new SendingSampleRequest(tempData.date, tempData.time, tempData.heartRate, tempData.state, responseListener);
+                                        queue.add(request);
                                     }
-                                    else {
-                                        Log.d("miband", "Fail sending");
-                                    }
-                                }
-                                catch (Exception e)  {
-                                    e.printStackTrace();
                                 }
                             }
-                        };
-
-                        SendingSampleRequest request = new SendingSampleRequest(data.date, data.time, data.heartRate, data.state,responseListener);
-                        RequestQueue queue = Volley.newRequestQueue(getContext());
-                        queue.add(request);
+                            else {
+                                Log.d(TAG, "Fail deleting");
+                            }
+                        }
+                        catch (Exception e)  {
+                            e.printStackTrace();
+                        }
                     }
-                }
+                };
+
+                DeletedSampleRequest deletedRequest = new DeletedSampleRequest(deleteResponseListener);
+                queue.add(deletedRequest);
             }
         }
         else if (initCount < 60){
@@ -324,6 +339,8 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_third, container, false);
 
+        bUpdate = false;
+
         mActivityChart = rootView.findViewById(R.id.sleepchart);
         mSleepAmountChart = rootView.findViewById(R.id.sleepchart_pie_light_deep);
         mSleepchartInfo = rootView.findViewById(R.id.sleepchart_info);
@@ -341,11 +358,6 @@ public class SmartAlarmFragment extends AbstractChartFragment {
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (action.equals(ChartsHost.REFRESH)) {
-            // TODO: use LimitLines to visualize smart alarms?
-            mSmartAlarmFrom = intent.getIntExtra("smartalarm_from", -1);
-            mSmartAlarmTo = intent.getIntExtra("smartalarm_to", -1);
-            mTimestampFrom = intent.getIntExtra("recording_base_timestamp", -1);
-            mSmartAlarmGoneOff = intent.getIntExtra("alarm_gone_off", -1);
             refresh();
         } else {
             super.onReceive(context, intent);
