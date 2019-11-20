@@ -7,16 +7,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SendingSampleRequest extends StringRequest {
-    final static private String URL = "http://10.0.2.2/"; // 전송할 데이터 URL - 10.0.2.2는 localhost
+    final static private String URL = "http://yoursleeping.pythonanywhere.com/data/add/";
     private Map<String, String> parameters;
 
-    public SendingSampleRequest(String time, String heartRate, String sleepType, Response.Listener<String> listener) {
+    public SendingSampleRequest(int date, int time, int heartRate, int sleepType, Response.Listener<String> listener) {
         super(Method.POST, URL, listener, null);
 
         parameters = new HashMap<>();
-        parameters.put("timeStamp", time);
-        parameters.put("heartRate", heartRate);
-        parameters.put("sleepType", sleepType); // 2는 얇은 수면, 4는 깊은 수면
+        parameters.put("date", Integer.toString(date));
+        parameters.put("time", Integer.toString(time));
+        parameters.put("heartrate", Integer.toString(heartRate)); // heartRate
+        parameters.put("type", Integer.toString(sleepType)); // sleepType - 2는 얇은 수면, 4는 깊은 수면
     }
 
     @Override
