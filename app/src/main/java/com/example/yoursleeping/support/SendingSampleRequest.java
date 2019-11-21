@@ -10,8 +10,8 @@ public class SendingSampleRequest extends StringRequest {
     final static private String URL = "http://yoursleeping.pythonanywhere.com/data/add/";
     private Map<String, String> parameters;
 
-    public SendingSampleRequest(int date, int time, int heartRate, int sleepType, Response.Listener<String> listener) {
-        super(Method.POST, URL, listener, null);
+    public SendingSampleRequest(int date, int time, int heartRate, int sleepType, Response.Listener<String> listener, Response.ErrorListener errorListener) {
+        super(Method.POST, URL, listener, errorListener);
 
         parameters = new HashMap<>();
         parameters.put("date", Integer.toString(date));

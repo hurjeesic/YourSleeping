@@ -13,6 +13,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
+import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
 import com.example.yoursleeping.support.DeletedSampleRequest;
 import com.example.yoursleeping.support.SendingSampleRequest;
@@ -96,7 +97,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
             String DATE_PREV_DAY = ChartsActivity.class.getName().concat(".date_prev_day");
             String DATE_NEXT_DAY = ChartsActivity.class.getName().concat(".date_next_day");
             //54540 - timestamp에서 하루 차이
-            if (samples.size() > 0 && presentTime - samples.get(0).getTimestamp() < 54540 * 2) {
+            if (samples.size() > 0 && presentTime - samples.get(0).getTimestamp() < 54540 * 60) {
                 for (int i = samples.size() - 1; i >= 0; i--) {
                     String[] dateInfo = DateTimeUtils.formatDateTime(DateTimeUtils.parseTimeStamp(samples.get(i).getTimestamp())).split(" ");
                     int year = Calendar.getInstance().get(Calendar.YEAR);
@@ -151,6 +152,15 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                     }
                 });
 
+                final Response.ErrorListener errorListener = new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        if (error != null && error.networkResponse != null) {
+                            Log.d(TAG, "" + error.networkResponse.statusCode);
+                        }
+                    }
+                };
+
                 final RequestQueue queue = Volley.newRequestQueue(getActivity());
                 Response.Listener<String> deleteResponseListener = new Response.Listener<String>() {
                     @Override
@@ -161,27 +171,27 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                             if (success) {
                                 for (int i = 0; i < dataLst.size(); i++) {
                                     final SendingData tempData = dataLst.get(i);
-                                    if (tempData.state == ActivityKind.TYPE_DEEP_SLEEP || tempData.state == ActivityKind.TYPE_LIGHT_SLEEP) {
-                                        Response.Listener<String> responseListener = new Response.Listener<String>() {
-                                            @Override
-                                            public void onResponse(String response) {
-                                                try {
-                                                    JSONObject jsonResponse = new JSONObject(response);
-                                                    boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
-                                                    if (success) {
-                                                        Log.d(TAG, "time = " + tempData.date + " - " + tempData.time + ", state = " + tempData.state);
-                                                    }
-                                                    else {
-                                                        Log.d(TAG, "Fail sending");
-                                                    }
+                                    Response.Listener<String> responseListener = new Response.Listener<String>() {
+                                        @Override
+                                        public void onResponse(String response) {
+                                            try {
+                                                Log.d(TAG, "seding data : " + tempData.date + " - " + tempData.time);
+                                                JSONObject jsonResponse = new JSONObject(response);
+                                                boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
+                                                if (success) {
+
                                                 }
-                                                catch (Exception e)  {
-                                                    e.printStackTrace();
+                                                else {
+                                                    Log.d(TAG, "Fail sending");
                                                 }
                                             }
-                                        };
-
-                                        SendingSampleRequest request = new SendingSampleRequest(tempData.date, tempData.time, tempData.heartRate, tempData.state, responseListener);
+                                            catch (Exception e)  {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    };
+                                    if (tempData.state == ActivityKind.TYPE_DEEP_SLEEP || tempData.state == ActivityKind.TYPE_LIGHT_SLEEP) {
+                                        SendingSampleRequest request = new SendingSampleRequest(tempData.date, tempData.time, tempData.heartRate, tempData.state, responseListener, errorListener);
                                         queue.add(request);
                                     }
                                 }
