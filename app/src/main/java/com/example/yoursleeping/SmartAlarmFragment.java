@@ -3,6 +3,7 @@ package com.example.yoursleeping;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,13 +18,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.Volley;
 import com.example.yoursleeping.support.DeletedSampleRequest;
 import com.example.yoursleeping.support.SendingSampleRequest;
-import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.Chart;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.LegendEntry;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
@@ -45,7 +41,6 @@ import java.util.concurrent.TimeUnit;
 
 import nodomain.freeyourgadget.gadgetbridge.GBApplication;
 import nodomain.freeyourgadget.gadgetbridge.R;
-import nodomain.freeyourgadget.gadgetbridge.activities.HeartRateUtils;
 import nodomain.freeyourgadget.gadgetbridge.activities.charts.AbstractChartFragment;
 import nodomain.freeyourgadget.gadgetbridge.activities.charts.ActivitySleepChartFragment;
 import nodomain.freeyourgadget.gadgetbridge.activities.charts.ChartsActivity;
@@ -63,12 +58,10 @@ public class SmartAlarmFragment extends AbstractChartFragment {
     private String TAG = "miband";
     private static boolean bUpdate = false;
     private static int initCount = 0, Count = 0;
-    private static long presentTime = 0;
+    private static long presentTime = 0, sendedDelay = 0;
     private static List<SendingData> dataLst = new ArrayList<>();
     protected static final Logger LOG = LoggerFactory.getLogger(ActivitySleepChartFragment.class);
 
-    private LineChart mActivityChart;
-    private PieChart mSleepAmountChart;
     private TextView mSleepchartInfo;
 
     class SendingData {
@@ -92,7 +85,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
             samples = getSamplesofSleep(db, device);
         }
 
-        if (presentTime == 0) presentTime = samples.get(0).getTimestamp();
+        if (presentTime == 0 && samples.size() > 0) presentTime = samples.get(0).getTimestamp();
         if (!bUpdate) {
             String DATE_PREV_DAY = ChartsActivity.class.getName().concat(".date_prev_day");
             String DATE_NEXT_DAY = ChartsActivity.class.getName().concat(".date_next_day");
@@ -152,6 +145,28 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                     }
                 });
 
+                final Response.Listener<String> responseListener = new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
+                            boolean completed = jsonResponse.getBoolean("completed");
+                            if (success) {
+                                if (completed) {
+                                    Log.d(TAG, "전송 완료");
+                                }
+                            }
+                            else {
+                                Log.d(TAG, "Fail sending");
+                            }
+                        }
+                        catch (Exception e)  {
+                            e.printStackTrace();
+                        }
+                    }
+                };
+
                 final Response.ErrorListener errorListener = new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
@@ -161,6 +176,8 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                     }
                 };
 
+                final String url = "http://yoursleeping.pythonanywhere.com";
+                Log.d(TAG, "전송 시작");
                 final RequestQueue queue = Volley.newRequestQueue(getActivity());
                 Response.Listener<String> deleteResponseListener = new Response.Listener<String>() {
                     @Override
@@ -169,30 +186,30 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                             JSONObject jsonResponse = new JSONObject(response);
                             boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
                             if (success) {
+                                int startedSleep = 0;
+                                int beforeTime = 0;
                                 for (int i = 0; i < dataLst.size(); i++) {
                                     final SendingData tempData = dataLst.get(i);
-                                    Response.Listener<String> responseListener = new Response.Listener<String>() {
-                                        @Override
-                                        public void onResponse(String response) {
-                                            try {
-                                                Log.d(TAG, "seding data : " + tempData.date + " - " + tempData.time);
-                                                JSONObject jsonResponse = new JSONObject(response);
-                                                boolean success = jsonResponse.getBoolean("success"); // 전송 성공 - 단 수시로 일어나므로 다른 동작 x
-                                                if (success) {
+                                    if (tempData.state == ActivityKind.TYPE_ACTIVITY || tempData.state == ActivityKind.TYPE_DEEP_SLEEP || tempData.state == ActivityKind.TYPE_LIGHT_SLEEP) {
+//                                        String timeStr = tempData.time / 60 + ":" + tempData.time % 60;
+//                                        Log.d(TAG, "Data : " + tempData.date + " - " + timeStr + " : Heart Rate = " + tempData.heartRate + ", State = " + tempData.state);
 
-                                                }
-                                                else {
-                                                    Log.d(TAG, "Fail sending");
-                                                }
-                                            }
-                                            catch (Exception e)  {
-                                                e.printStackTrace();
-                                            }
+                                        if (!(beforeTime - tempData.time != 1 || tempData.time - beforeTime != 1439) && (tempData.state == ActivityKind.TYPE_DEEP_SLEEP || tempData.state == ActivityKind.TYPE_LIGHT_SLEEP)) {
+                                            startedSleep = tempData.time;
                                         }
-                                    };
-                                    if (tempData.state == ActivityKind.TYPE_DEEP_SLEEP || tempData.state == ActivityKind.TYPE_LIGHT_SLEEP) {
-                                        SendingSampleRequest request = new SendingSampleRequest(tempData.date, tempData.time, tempData.heartRate, tempData.state, responseListener, errorListener);
-                                        queue.add(request);
+
+                                        beforeTime = tempData.time;
+
+                                        final int sendedStarting = startedSleep;
+                                        final Handler handler = new Handler();
+                                        handler.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                SendingSampleRequest request = new SendingSampleRequest(url, tempData.date, tempData.time, tempData.heartRate, tempData.state, sendedStarting, responseListener, errorListener);
+                                                queue.add(request);
+                                            }
+                                        }, sendedDelay);
+                                        sendedDelay += 10;
                                     }
                                 }
                             }
@@ -206,7 +223,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
                     }
                 };
 
-                DeletedSampleRequest deletedRequest = new DeletedSampleRequest(deleteResponseListener);
+                DeletedSampleRequest deletedRequest = new DeletedSampleRequest(url, deleteResponseListener);
                 queue.add(deletedRequest);
             }
         }
@@ -309,12 +326,6 @@ public class SmartAlarmFragment extends AbstractChartFragment {
         SmartAlarmFragment.MyChartsData mcd = (SmartAlarmFragment.MyChartsData) chartsData;
         if (mcd != null) {
             SmartAlarmFragment.MySleepChartsData pieData = mcd.getPieData();
-            mSleepAmountChart.setCenterText(pieData.getTotalSleep());
-            mSleepAmountChart.setData(pieData.getPieData());
-
-            mActivityChart.setData(null); // workaround for https://github.com/PhilJay/MPAndroidChart/issues/2317
-            mActivityChart.getXAxis().setValueFormatter(mcd.getChartsData().getXValueFormatter());
-            mActivityChart.setData(mcd.getChartsData().getData());
 
             mSleepchartInfo.setText(buildYouSleptText(pieData));
         }
@@ -351,12 +362,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
 
         bUpdate = false;
 
-        mActivityChart = rootView.findViewById(R.id.sleepchart);
-        mSleepAmountChart = rootView.findViewById(R.id.sleepchart_pie_light_deep);
         mSleepchartInfo = rootView.findViewById(R.id.sleepchart_info);
-
-        setupActivityChart();
-        setupSleepAmountChart();
 
         // refresh immediately instead of use refreshIfVisible(), for perceived performance
         refresh();
@@ -372,50 +378,6 @@ public class SmartAlarmFragment extends AbstractChartFragment {
         } else {
             super.onReceive(context, intent);
         }
-    }
-
-    private void setupSleepAmountChart() {
-        mSleepAmountChart.setBackgroundColor(BACKGROUND_COLOR);
-        mSleepAmountChart.getDescription().setTextColor(DESCRIPTION_COLOR);
-        mSleepAmountChart.setEntryLabelColor(DESCRIPTION_COLOR);
-        mSleepAmountChart.getDescription().setText("");
-//        mSleepAmountChart.getDescription().setNoDataTextDescription("");
-        mSleepAmountChart.setNoDataText("");
-        mSleepAmountChart.getLegend().setEnabled(false);
-    }
-
-    private void setupActivityChart() {
-        mActivityChart.setBackgroundColor(BACKGROUND_COLOR);
-        mActivityChart.getDescription().setTextColor(DESCRIPTION_COLOR);
-        configureBarLineChartDefaults(mActivityChart);
-
-        XAxis x = mActivityChart.getXAxis();
-        x.setDrawLabels(true);
-        x.setDrawGridLines(false);
-        x.setEnabled(true);
-        x.setTextColor(CHART_TEXT_COLOR);
-        x.setDrawLimitLinesBehindData(true);
-
-        YAxis y = mActivityChart.getAxisLeft();
-        y.setDrawGridLines(false);
-//        y.setDrawLabels(false);
-        // TODO: make fixed max value optional
-        y.setAxisMaximum(1f);
-        y.setAxisMinimum(0);
-        y.setDrawTopYLabelEntry(false);
-        y.setTextColor(CHART_TEXT_COLOR);
-
-//        y.setLabelCount(5);
-        y.setEnabled(true);
-
-        YAxis yAxisRight = mActivityChart.getAxisRight();
-        yAxisRight.setDrawGridLines(false);
-        yAxisRight.setEnabled(supportsHeartrate(getChartsHost().getDevice()));
-        yAxisRight.setDrawLabels(true);
-        yAxisRight.setDrawTopYLabelEntry(true);
-        yAxisRight.setTextColor(CHART_TEXT_COLOR);
-        yAxisRight.setAxisMaxValue(HeartRateUtils.getInstance().getMaxHeartRate());
-        yAxisRight.setAxisMinValue(HeartRateUtils.getInstance().getMinHeartRate());
     }
 
     @Override
@@ -450,8 +412,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
 
     @Override
     protected void renderCharts() {
-        mActivityChart.animateX(ANIM_TIME, Easing.EaseInOutQuart);
-        mSleepAmountChart.invalidate();
+
     }
 
     private static class MySleepChartsData extends ChartsData {

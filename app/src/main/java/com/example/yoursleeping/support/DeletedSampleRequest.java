@@ -7,11 +7,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DeletedSampleRequest extends StringRequest {
-    final static private String URL = "http://yoursleeping.pythonanywhere.com/data/delete/";
+    final static private String URL = "/data/delete/";
     private Map<String, String> parameters;
 
-    public DeletedSampleRequest(Response.Listener<String> listener) {
-        super(Method.GET, URL, listener, null);
+    public DeletedSampleRequest(String baseUrl, Response.Listener<String> listener) {
+        super(Method.GET, baseUrl + URL, listener, null);
 
         parameters = new HashMap<>();
     }
