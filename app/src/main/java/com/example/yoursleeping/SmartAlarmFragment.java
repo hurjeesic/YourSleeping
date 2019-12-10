@@ -378,7 +378,7 @@ public class SmartAlarmFragment extends AbstractChartFragment {
 
         // refresh immediately instead of use refreshIfVisible(), for perceived performance
         refresh();
-        Alarm_set(context, rootView);
+//        Alarm_set(context, rootView);
         return rootView;
     }
     public void Alarm_set(Context context, View view){
